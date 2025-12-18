@@ -34,8 +34,16 @@ def extract_features_dict(file_path):
         print(f"ERROR: File '{file_path}' not found!")
         return None
 
-    # Load 30 seconds of audio
-    y, sr = librosa.load(file_path, duration=30)
+    total_duration = librosa.get_duration(path=file_path)
+
+    if total_duration > 30:
+        start_time = (total_duration / 2) - 15
+    else:
+        start_time = 0
+
+    print(f"--- Loading 30s starting at {start_time:.1f}s (Total length: {total_duration:.1f}s) ---")
+
+    y, sr = librosa.load(file_path, offset=start_time, duration=30)
     features = {}
 
     # 1. MFCCs
@@ -57,7 +65,8 @@ def extract_features_dict(file_path):
     features["zero_crossing_rate"] = np.mean(librosa.feature.zero_crossing_rate(y))
 
     # 4. Tempo (using updated path to avoid warnings)
-    features["tempo"] = float(librosa.beat.tempo(y=y, sr=sr)[0])
+    tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
+    features["tempo"] = float(tempo[0])
 
     return features
 
