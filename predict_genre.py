@@ -85,13 +85,21 @@ def predict(file_path):
     X_new = pd.DataFrame([features_dict])
     X_new = X_new[expected_features]
 
-    # 4. Final Prediction
-    prediction = model.predict(X_new)[0]
-    probabilities = model.predict_proba(X_new)
-    confidence = np.max(probabilities)
+    probabilities = model.predict_proba(X_new)[0]
+    all_genres = model.classes_
 
-    print(f"Predicted genre: {prediction.upper()}")
-    print(f"Confidence: {confidence:.2f}")
+    # 5. Sort them to find the Top 3
+    # zip combines genre names and their scores, sorted() puts the highest first
+    genre_prob_pairs = sorted(zip(all_genres, probabilities), key=lambda x: x[1], reverse=True)
+    top_3 = genre_prob_pairs[:3]
+
+    # 6. Display results
+    print("AI Top 3 Predictions:")
+    for i, (genre, prob) in enumerate(top_3):
+        prefix = "-> " if i == 0 else "   " # Add a little arrow to the winner
+        print(f"{prefix}{genre.upper()}: {prob*100:.1f}%")
+
+    print("-" * 30)
 
 if __name__ == "__main__":
     print("=== Music Genre AI Agent ===")
