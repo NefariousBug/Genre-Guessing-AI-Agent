@@ -36,16 +36,22 @@ def extract_features_dict(file_path):
         print(f"ERROR: File '{file_path}' not found!")
         return None
 
-    total_duration = librosa.get_duration(path=file_path)
+    try:
+        total_duration = librosa.get_duration(path=file_path)
 
-    if total_duration > 30:
-        start_time = (total_duration / 2) - 15
-    else:
-        start_time = 0
+        if total_duration > 30:
+            start_time = (total_duration / 2) - 15
+        else:
+            start_time = 0
 
-    print(f"--- Loading 30s starting at {start_time:.1f}s (Total length: {total_duration:.1f}s) ---")
+        print(f"--- Loading 30s starting at {start_time:.1f}s (Total length: {total_duration:.1f}s) ---")
 
-    y, sr = librosa.load(file_path, offset=start_time, duration=30)
+        y, sr = librosa.load(file_path, offset=start_time, duration=30)
+        
+    except Exception as e:
+        print(f"ERROR: Could not process audio file: {e}")
+        return None
+
     features = {}
 
     # 1. MFCCs
