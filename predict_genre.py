@@ -6,6 +6,8 @@ import os
 import yt_dlp
 
 MODEL_PATH = "genre_model.pkl"
+FEEDBACK_CSV = "feedback_data.csv"
+VALID_GENRES = ["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"]
 
 def download_audio_from_url(url):
     """Downloads audio from a URL and saves it as a temporary wav file."""
@@ -70,6 +72,22 @@ def extract_features_dict(file_path):
 
     return features
 
+def save_feedback(features_dict, correct_genre):
+    """Saves user feedback to the feedback CSV file."""
+    # Add the genre to the features
+    features_dict["genre"] = correct_genre
+    
+    # Convert to DataFrame
+    feedback_row = pd.DataFrame([features_dict])
+    
+    # Append to CSV (create if doesn't exist)
+    if os.path.exists(FEEDBACK_CSV):
+        feedback_row.to_csv(FEEDBACK_CSV, mode='a', header=False, index=False)
+    else:
+        feedback_row.to_csv(FEEDBACK_CSV, mode='w', header=True, index=False)
+    
+    print(f"✓ Feedback saved! ({correct_genre})")
+
 def predict(file_path):   
     print(f"\n--- Analyzing: {file_path} ---")
     
@@ -100,6 +118,22 @@ def predict(file_path):
         print(f"{prefix}{genre.upper()}: {prob*100:.1f}%")
 
     print("-" * 30)
+
+    # 7. Collect feedback
+    feedback = input("\nWas the prediction correct? (y/n): ").strip().lower()
+    
+    if feedback == 'n':
+        print(f"\nValid genres: {', '.join(VALID_GENRES)}")
+        correct_genre = input("What's the correct genre? ").strip().lower()
+        
+        if correct_genre in VALID_GENRES:
+            save_feedback(features_dict, correct_genre)
+        else:
+            print(f"❌ Invalid genre. Must be one of: {', '.join(VALID_GENRES)}")
+    elif feedback == 'y':
+        print("Awesome!")
+    else:
+        print("No feedback recorded.")
 
 if __name__ == "__main__":
     print("=== Music Genre AI Agent ===")
