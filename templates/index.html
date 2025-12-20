@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Genre AI Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .input-section {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        input[type="text"], input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus, input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            color: #999;
+            font-weight: 600;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+        
+        .prediction {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .prediction.top {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-left: 4px solid #667eea;
+        }
+        
+        .genre-name {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #333;
+            text-transform: uppercase;
+        }
+        
+        .probability {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #667eea;
+            float: right;
+        }
+        
+        .feedback-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+        }
+        
+        .feedback-title {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .feedback-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .feedback-buttons button {
+            flex: 1;
+        }
+        
+        .btn-correct {
+            background: #28a745;
+        }
+        
+        .btn-correct:hover {
+            box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+        }
+        
+        .btn-incorrect {
+            background: #dc3545;
+        }
+        
+        .btn-incorrect:hover {
+            box-shadow: 0 5px 20px rgba(220, 53, 69, 0.4);
+        }
+        
+        .genre-select {
+            display: none;
+            margin-top: 15px;
+        }
+        
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Genre Guesser</h1>
+        <p class="subtitle">AI-powered music genre classification</p>
+        
+        <form id="predictionForm">
+            <div class="input-section">
+                <label for="youtube_url">YouTube URL</label>
+                <input type="text" id="youtube_url" name="youtube_url" placeholder="https://www.youtube.com/watch?v=...">
+            </div>
+            
+            <div class="divider">— OR —</div>
+            
+            <div class="input-section">
+                <label for="audio_file">Upload Audio File (.wav, .mp3)</label>
+                <input type="file" id="audio_file" name="audio_file" accept="audio/*">
+            </div>
+            
+            <button type="submit" id="predictBtn">Analyze Music</button>
+        </form>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing audio... This may take a moment.</p>
+        </div>
+        
+        <div class="results" id="results">
+            <h2 style="color: #667eea; margin-bottom: 20px;">🎯 Top 3 Predictions</h2>
+            <div id="predictionsContainer"></div>
+            
+            <div class="feedback-section">
+                <div class="feedback-title">Was this prediction correct?</div>
+                <div class="feedback-buttons">
+                    <button class="btn-correct" onclick="handleCorrectFeedback()">✓ Correct</button>
+                    <button class="btn-incorrect" onclick="showGenreSelect()">✗ Incorrect</button>
+                </div>
+                
+                <div class="genre-select" id="genreSelect">
+                    <label for="correctGenre">Select the correct genre:</label>
+                    <select id="correctGenre">
+                        {% for genre in genres %}
+                        <option value="{{ genre }}">{{ genre.upper() }}</option>
+                        {% endfor %}
+                    </select>
+                    <button onclick="submitIncorrectFeedback()">Submit Feedback</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="message" id="message"></div>
+    </div>
+    
+    <script>
+        const form = document.getElementById('predictionForm');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const predictionsContainer = document.getElementById('predictionsContainer');
+        const message = document.getElementById('message');
+        const genreSelect = document.getElementById('genreSelect');
+        const predictBtn = document.getElementById('predictBtn');
+        
+        let topPrediction = null;
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Hide previous results and messages
+            results.style.display = 'none';
+            message.style.display = 'none';
+            genreSelect.style.display = 'none';
+            
+            // Show loading
+            loading.style.display = 'block';
+            predictBtn.disabled = true;
+            
+            const formData = new FormData(form);
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayPredictions(data.predictions);
+                } else {
+                    showMessage(data.error || 'An error occurred', 'error');
+                }
+            } catch (error) {
+                showMessage('Failed to connect to server', 'error');
+            } finally {
+                loading.style.display = 'none';
+                predictBtn.disabled = false;
+            }
+        });
+        
+        function displayPredictions(predictions) {
+            predictionsContainer.innerHTML = '';
+            topPrediction = predictions[0].genre;
+            
+            predictions.forEach((pred, index) => {
+                const div = document.createElement('div');
+                div.className = index === 0 ? 'prediction top' : 'prediction';
+                div.innerHTML = `
+                    <span class="genre-name">${index === 0 ? '→ ' : ''}${pred.genre}</span>
+                    <span class="probability">${pred.probability.toFixed(1)}%</span>
+                `;
+                predictionsContainer.appendChild(div);
+            });
+            
+            // Show results and reset feedback section
+            results.style.display = 'block';
+            document.querySelector('.feedback-section').style.display = 'block';
+            genreSelect.style.display = 'none';
+            
+            // Re-enable all buttons
+            const buttons = document.querySelector('.feedback-section').querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = false);
+        }
+        
+        function showMessage(text, type) {
+            message.textContent = text;
+            message.className = `message ${type}`;
+            message.style.display = 'block';
+            
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showGenreSelect() {
+            genreSelect.style.display = 'block';
+        }
+        
+        async function handleCorrectFeedback() {
+            // Hide feedback section
+            document.querySelector('.feedback-section').style.display = 'none';
+            showMessage('Great! The model is working well. 🎉', 'success');
+        }
+        
+        async function submitIncorrectFeedback() {
+            const correctGenre = document.getElementById('correctGenre').value;
+            const feedbackSection = document.querySelector('.feedback-section');
+            
+            // Disable buttons during submission
+            const buttons = feedbackSection.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+            
+            try {
+                // Save feedback
+                const feedbackResponse = await fetch('/feedback', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ genre: correctGenre })
+                });
+                
+                const feedbackData = await feedbackResponse.json();
+                
+                if (!feedbackResponse.ok) {
+                    showMessage(feedbackData.error || 'Failed to save feedback', 'error');
+                    buttons.forEach(btn => btn.disabled = false);
+                    return;
+                }
+                
+                // Hide feedback section
+                feedbackSection.style.display = 'none';
+                
+                // Show retraining message
+                showMessage('💾 Feedback saved! Retraining model...', 'success');
+                
+                // Trigger retraining
+                const retrainResponse = await fetch('/retrain', {
+                    method: 'POST'
+                });
+                
+                const retrainData = await retrainResponse.json();
+                
+                if (retrainResponse.ok) {
+                    showMessage(`✓ Model retrained successfully! (${retrainData.feedback_count} feedback samples used)`, 'success');
+                } else {
+                    showMessage(retrainData.error || 'Failed to retrain model', 'error');
+                }
+            } catch (error) {
+                showMessage('Failed to connect to server', 'error');
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+    </script>
+</body>
+</html>
