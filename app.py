@@ -9,20 +9,17 @@ from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50mb max
 
-# Create uploads folder if it doesn't exist
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 MODEL_PATH = "genre_model.pkl"
 FEEDBACK_CSV = "feedback_data.csv"
 VALID_GENRES = ["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"]
 
-# Load model at startup
 model = joblib.load(MODEL_PATH)
 
 def download_audio_from_url(url):
-    """Downloads audio from a URL and saves it as a temporary wav file."""
     temp_file = os.path.join(app.config['UPLOAD_FOLDER'], 'temp_download')
     
     ydl_opts = {
@@ -43,7 +40,6 @@ def download_audio_from_url(url):
     return f"{temp_file}.wav"
 
 def extract_features_dict(file_path):
-    """Extracts features and returns them as a dictionary."""
     if not os.path.exists(file_path):
         return None
 
@@ -88,7 +84,6 @@ def extract_features_dict(file_path):
     return features
 
 def save_feedback(features_dict, correct_genre):
-    """Saves user feedback to the feedback CSV file."""
     features_dict["genre"] = correct_genre
     feedback_row = pd.DataFrame([features_dict])
     
@@ -107,7 +102,6 @@ def predict():
         file_path = None
         is_temp = False
         
-        # Check if it's a URL or file upload
         if 'youtube_url' in request.form and request.form['youtube_url'].strip():
             url = request.form['youtube_url'].strip()
             try:
@@ -129,14 +123,13 @@ def predict():
         else:
             return jsonify({'error': 'Please provide either a YouTube URL or upload a file'}), 400
         
-        # Extract features
         features_dict = extract_features_dict(file_path)
         if features_dict is None:
             if is_temp and os.path.exists(file_path):
                 os.remove(file_path)
             return jsonify({'error': 'Could not process audio file'}), 400
         
-        # Make prediction
+        # prediction
         expected_features = model.named_steps['scaler'].feature_names_in_
         X_new = pd.DataFrame([features_dict])
         X_new = X_new[expected_features]
@@ -144,15 +137,13 @@ def predict():
         probabilities = model.predict_proba(X_new)[0]
         all_genres = model.classes_
         
-        # Get top 3
         genre_prob_pairs = sorted(zip(all_genres, probabilities), key=lambda x: x[1], reverse=True)
         top_3 = [{'genre': genre, 'probability': float(prob * 100)} for genre, prob in genre_prob_pairs[:3]]
         
-        # Store features in session-like manner (we'll use a temp file)
+        # Store features in temp file
         features_file = os.path.join(app.config['UPLOAD_FOLDER'], 'last_features.pkl')
         joblib.dump(features_dict, features_file)
         
-        # Clean up audio file
         if is_temp and os.path.exists(file_path):
             os.remove(file_path)
         
@@ -170,7 +161,6 @@ def feedback():
         if correct_genre not in VALID_GENRES:
             return jsonify({'error': 'Invalid genre'}), 400
         
-        # Load the last features
         features_file = os.path.join(app.config['UPLOAD_FOLDER'], 'last_features.pkl')
         if not os.path.exists(features_file):
             return jsonify({'error': 'No prediction to give feedback on'}), 400
@@ -193,37 +183,32 @@ def retrain():
         from sklearn.svm import SVC
         
         GTZAN_CSV = "data/gtzan_features.csv"
-        FEEDBACK_WEIGHT = 5.0
+        FEEDBACK_WEIGHT = 3.0
         
-        # Load GTZAN data
+        # GTZAN
         if not os.path.exists(GTZAN_CSV):
             return jsonify({'error': 'GTZAN dataset not found'}), 400
         
         df_gtzan = pd.read_csv(GTZAN_CSV)
         
-        # Load feedback data if exists
+        # feedback
         if os.path.exists(FEEDBACK_CSV):
             df_feedback = pd.read_csv(FEEDBACK_CSV)
         else:
             return jsonify({'error': 'No feedback data to retrain on'}), 400
         
-        # Combine datasets
         df_combined = pd.concat([df_gtzan, df_feedback], ignore_index=True)
         
-        # Create sample weights
         weights = np.ones(len(df_combined))
         weights[-len(df_feedback):] = FEEDBACK_WEIGHT
         
-        # Separate features and labels
         X = df_combined.drop("genre", axis=1)
         y = df_combined["genre"]
         
-        # Train/test split
         X_train, X_test, y_train, y_test, weights_train, weights_test = train_test_split(
             X, y, weights, test_size=0.2, random_state=42, stratify=y
         )
         
-        # Build and train model
         new_model = Pipeline([
             ("scaler", StandardScaler()),
             ("classifier", SVC(kernel="rbf", probability=True))
@@ -231,13 +216,11 @@ def retrain():
         
         new_model.fit(X_train, y_train, classifier__sample_weight=weights_train)
         
-        # Save model
         joblib.dump(new_model, MODEL_PATH)
         
-        # Reload model in memory
         model = joblib.load(MODEL_PATH)
         
-        return jsonify({'message': 'Model retrained successfully!', 'feedback_count': len(df_feedback)})
+        return jsonify({'message': 'Model retrained successfully', 'feedback_count': len(df_feedback)})
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500

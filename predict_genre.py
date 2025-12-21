@@ -10,8 +10,7 @@ FEEDBACK_CSV = "feedback_data.csv"
 VALID_GENRES = ["blues", "classical", "country", "disco", "hiphop", "jazz", "metal", "pop", "reggae", "rock"]
 
 def download_audio_from_url(url):
-    """Downloads audio from a URL and saves it as a temporary wav file."""
-    print(f"--- Downloading audio from: {url} ---")
+    print(f"-Downloading audio from: {url}-")
     
     ydl_opts = {
         'format': 'bestaudio/best',
@@ -31,9 +30,8 @@ def download_audio_from_url(url):
     return "temp_download.wav"
 
 def extract_features_dict(file_path):
-    """Extracts features and returns them as a dictionary."""
     if not os.path.exists(file_path):
-        print(f"ERROR: File '{file_path}' not found!")
+        print(f"ERROR: File '{file_path}' not found")
         return None
 
     try:
@@ -72,21 +70,18 @@ def extract_features_dict(file_path):
     features["spectral_rolloff"] = np.mean(librosa.feature.spectral_rolloff(y=y, sr=sr))
     features["zero_crossing_rate"] = np.mean(librosa.feature.zero_crossing_rate(y))
 
-    # 4. Tempo (using updated path to avoid warnings)
+    # 4. Tempo
     tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
     features["tempo"] = float(tempo[0])
 
     return features
 
 def save_feedback(features_dict, correct_genre):
-    """Saves user feedback to the feedback CSV file."""
-    # Add the genre to the features
+ 
     features_dict["genre"] = correct_genre
     
-    # Convert to DataFrame
     feedback_row = pd.DataFrame([features_dict])
     
-    # Append to CSV (create if doesn't exist)
     if os.path.exists(FEEDBACK_CSV):
         feedback_row.to_csv(FEEDBACK_CSV, mode='a', header=False, index=False)
     else:
@@ -97,14 +92,11 @@ def save_feedback(features_dict, correct_genre):
 def predict(file_path):   
     print(f"\n--- Analyzing: {file_path} ---")
     
-    # 1. Load the model
     model = joblib.load(MODEL_PATH)
     
-    # 2. Extract features
     features_dict = extract_features_dict(file_path)
     if features_dict is None: return
 
-    # 3. Align features with model expectations
     expected_features = model.named_steps['scaler'].feature_names_in_
     X_new = pd.DataFrame([features_dict])
     X_new = X_new[expected_features]
@@ -112,20 +104,16 @@ def predict(file_path):
     probabilities = model.predict_proba(X_new)[0]
     all_genres = model.classes_
 
-    # 5. Sort them to find the Top 3
-    # zip combines genre names and their scores, sorted() puts the highest first
     genre_prob_pairs = sorted(zip(all_genres, probabilities), key=lambda x: x[1], reverse=True)
     top_3 = genre_prob_pairs[:3]
 
-    # 6. Display results
     print("AI Top 3 Predictions:")
     for i, (genre, prob) in enumerate(top_3):
-        prefix = "-> " if i == 0 else "   " # Add a little arrow to the winner
+        prefix = "-> " if i == 0 else "   "
         print(f"{prefix}{genre.upper()}: {prob*100:.1f}%")
 
     print("-" * 30)
 
-    # 7. Collect feedback
     feedback = input("\nWas the prediction correct? (y/n): ").strip().lower()
     
     if feedback == 'n':
@@ -135,20 +123,19 @@ def predict(file_path):
         if correct_genre in VALID_GENRES:
             save_feedback(features_dict, correct_genre)
         else:
-            print(f"❌ Invalid genre. Must be one of: {', '.join(VALID_GENRES)}")
+            print(f"Invalid genre. Must be one of: {', '.join(VALID_GENRES)}")
     elif feedback == 'y':
-        print("Awesome!")
+        print("Cool")
     else:
         print("No feedback recorded.")
 
 if __name__ == "__main__":
-    print("=== Music Genre AI Agent ===")
-    user_input = input("Paste a YouTube URL or a local filename (e.g., song.wav): ").strip()
+    print("-Music Genre AI Agent-")
+    user_input = input("Paste a YouTube URL or a local filename: ").strip()
     
     target_file = user_input
     is_temp = False
 
-    # Check if input is a URL
     if user_input.startswith("http"):
         try:
             target_file = download_audio_from_url(user_input)
@@ -160,7 +147,7 @@ if __name__ == "__main__":
     if target_file:
         predict(target_file)
 
-        # Clean up temp file if it was downloaded
+
         if is_temp and os.path.exists(target_file):
             os.remove(target_file)
-            print("--- Cleaned up temporary files ---")
+            print("-Cleaned up temporary files-")

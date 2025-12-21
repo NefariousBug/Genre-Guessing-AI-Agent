@@ -232,7 +232,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎵 Genre Guesser</h1>
+        <h1>🎵 Genre Guesser 🎵</h1>
         <p class="subtitle">AI-powered music genre classification</p>
         
         <form id="predictionForm">
@@ -248,7 +248,10 @@
                 <input type="file" id="audio_file" name="audio_file" accept="audio/*">
             </div>
             
-            <button type="submit" id="predictBtn">Analyze Music</button>
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" id="predictBtn" style="flex: 3;">Analyze Music</button>
+                <button type="button" onclick="clearForm()" style="flex: 1; background: #6c757d;">Clear</button>
+            </div>
         </form>
         
         <div class="loading" id="loading">
@@ -257,14 +260,14 @@
         </div>
         
         <div class="results" id="results">
-            <h2 style="color: #667eea; margin-bottom: 20px;">🎯 Top 3 Predictions</h2>
+            <h2 style="color: #667eea; margin-bottom: 20px;">Top 3 Predictions</h2>
             <div id="predictionsContainer"></div>
             
             <div class="feedback-section">
                 <div class="feedback-title">Was this prediction correct?</div>
                 <div class="feedback-buttons">
-                    <button class="btn-correct" onclick="handleCorrectFeedback()">✓ Correct</button>
-                    <button class="btn-incorrect" onclick="showGenreSelect()">✗ Incorrect</button>
+                    <button class="btn-correct" onclick="handleCorrectFeedback()">Correct</button>
+                    <button class="btn-incorrect" onclick="showGenreSelect()">Incorrect</button>
                 </div>
                 
                 <div class="genre-select" id="genreSelect">
@@ -296,12 +299,10 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Hide previous results and messages
             results.style.display = 'none';
             message.style.display = 'none';
             genreSelect.style.display = 'none';
             
-            // Show loading
             loading.style.display = 'block';
             predictBtn.disabled = true;
             
@@ -342,12 +343,10 @@
                 predictionsContainer.appendChild(div);
             });
             
-            // Show results and reset feedback section
             results.style.display = 'block';
             document.querySelector('.feedback-section').style.display = 'block';
             genreSelect.style.display = 'none';
             
-            // Re-enable all buttons
             const buttons = document.querySelector('.feedback-section').querySelectorAll('button');
             buttons.forEach(btn => btn.disabled = false);
         }
@@ -362,26 +361,30 @@
             }, 5000);
         }
         
+        function clearForm() {
+            document.getElementById('youtube_url').value = '';
+            document.getElementById('audio_file').value = '';
+            results.style.display = 'none';
+            message.style.display = 'none';
+        }
+        
         function showGenreSelect() {
             genreSelect.style.display = 'block';
         }
         
         async function handleCorrectFeedback() {
-            // Hide feedback section
             document.querySelector('.feedback-section').style.display = 'none';
-            showMessage('Great! The model is working well. 🎉', 'success');
+            showMessage('Yay', 'success');
         }
         
         async function submitIncorrectFeedback() {
             const correctGenre = document.getElementById('correctGenre').value;
             const feedbackSection = document.querySelector('.feedback-section');
             
-            // Disable buttons during submission
             const buttons = feedbackSection.querySelectorAll('button');
             buttons.forEach(btn => btn.disabled = true);
             
             try {
-                // Save feedback
                 const feedbackResponse = await fetch('/feedback', {
                     method: 'POST',
                     headers: {
@@ -398,13 +401,10 @@
                     return;
                 }
                 
-                // Hide feedback section
                 feedbackSection.style.display = 'none';
                 
-                // Show retraining message
-                showMessage('💾 Feedback saved! Retraining model...', 'success');
+                showMessage('Feedback saved, retraining model...', 'success');
                 
-                // Trigger retraining
                 const retrainResponse = await fetch('/retrain', {
                     method: 'POST'
                 });
@@ -412,7 +412,7 @@
                 const retrainData = await retrainResponse.json();
                 
                 if (retrainResponse.ok) {
-                    showMessage(`✓ Model retrained successfully! (${retrainData.feedback_count} feedback samples used)`, 'success');
+                    showMessage(`Model retrained successfully (${retrainData.feedback_count} feedback samples used)`, 'success');
                 } else {
                     showMessage(retrainData.error || 'Failed to retrain model', 'error');
                 }
